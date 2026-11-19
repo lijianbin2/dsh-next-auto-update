@@ -1,6 +1,6 @@
 {
   "name": "dsh-next-auto-update",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "private": true,
   "type": "module",
   "description": "Left-sidebar page that updates every registry-installed DSH plugin and DSH NEXT itself when the app opens.",

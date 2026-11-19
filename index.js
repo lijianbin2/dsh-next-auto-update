@@ -100,23 +100,52 @@ function findFreshInstaller(updatesDir, notBefore, stable, settled) {
 }
 
 /**
+ * The PowerShell executable to start the wrapper with. The Host's own `PATH` is
+ * not guaranteed to name one, and a failed spawn would otherwise be silent.
+ * @returns an absolute path when one exists, else the bare command name.
+ */
+function powershellPath() {
+  const systemRoot = process.env.SystemRoot ?? process.env.windir ?? 'C:\\Windows'
+  const programFiles = process.env.ProgramFiles ?? 'C:\\Program Files'
+  const candidates = [
+    join(systemRoot, 'System32', 'WindowsPowerShell', 'v1.0', 'powershell.exe'),
+    join(programFiles, 'PowerShell', '7', 'pwsh.exe'),
+  ]
+  for (const candidate of candidates) {
+    if (existsSync(candidate)) return candidate
+  }
+  return 'powershell.exe'
+}
+
+/**
  * Start the install wrapper outside this process tree, so it survives the app the
  * wrapper has to close.
  * @param installerPath - the downloaded package to install.
  * @param appDir - the DSH NEXT installation directory.
  * @param scriptPath - `scripts/desktop-install.ps1`.
  * @param logPath - the file the wrapper appends to.
+ * @param log - the operation log writer.
  */
-function spawnInstall(installerPath, appDir, scriptPath, logPath) {
+function spawnInstall(installerPath, appDir, scriptPath, logPath, log) {
   const inner = `powershell.exe -NoProfile -ExecutionPolicy Bypass -File "${scriptPath}"`
     + ` -InstallerPath "${installerPath}" -AppDir "${appDir}" -LogPath "${logPath}"`
   const quoted = inner.replace(/'/gu, "''")
-  const command = 'Invoke-CimMethod -ClassName Win32_Process -MethodName Create'
-    + ` -Arguments @{ CommandLine = '${quoted}' } | Out-Null`
-  const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], {
+  // The launcher records its own WMI result in the same log, so a create that
+  // fails cannot look like silence.
+  const launcher = `$ErrorActionPreference = 'Stop'`
+    + `; $created = Invoke-CimMethod -ClassName Win32_Process -MethodName Create -Arguments @{ CommandLine = '${quoted}' }`
+    + `; Add-Content -LiteralPath '${logPath.replace(/'/gu, "''")}'`
+    + ` -Value ((Get-Date).ToString('o') + ' [host] launcher: ReturnValue=' + $created.ReturnValue + ' ProcessId=' + $created.ProcessId)`
+  const child = spawn(powershellPath(), ['-NoProfile', '-NonInteractive', '-Command', launcher], {
     detached: true,
     stdio: 'ignore',
     windowsHide: true,
+  })
+  child.on('error', (error) => {
+    log(`install launcher could not start: ${error instanceof Error ? error.message : String(error)}`)
+  })
+  child.on('exit', (code) => {
+    if (code !== 0 && code !== null) log(`install launcher exited with code ${code}`)
   })
   child.unref()
 }
@@ -194,7 +223,7 @@ export function apply(ctx) {
       fired = true
       log(`installing ${installer}`)
       try {
-        spawnInstall(installer, appDir, scriptPath, logPath)
+        spawnInstall(installer, appDir, scriptPath, logPath, log)
       } catch (error) {
         fired = false
         log(`could not start the install wrapper: ${error instanceof Error ? error.message : String(error)}`)
