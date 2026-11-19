@@ -28,12 +28,25 @@ DSH NEXT itself — check, download the signed installer, install, restart.
    package and restarts the app. Portable and Linux builds have no in-app
    installer; their row offers the release page instead.
 
-Two safety rules apply to the app half: a version the app already runs is never
+Two further rules guard the app half: a version the app already runs is never
 installed again (the shell's comparison can otherwise offer the running release),
 and a release whose install did not take effect is not retried automatically — the
-panel keeps it visible with **Install again**, because a Windows install fails the
-same way until whatever holds `DSH NEXT.exe` open (a browser-extension host, an
-Explorer window) is closed.
+panel keeps it visible with **Install again**.
+
+### How the app update is installed
+
+The shell's own install step cannot replace its folder while another process runs
+`DSH NEXT.exe` from inside it — Chrome's chrome-bridge native-messaging host does,
+and Chrome recreates it within seconds, so a Windows update used to fail with
+"system error 5" until Chrome was closed by hand.
+
+The plugin's Host half installs the downloaded package itself: when the shell
+finishes downloading a release, `scripts/desktop-install.ps1` starts detached,
+temporarily takes the chrome-bridge launcher out of service (so the host cannot
+come back), ends the app, runs the official installer silently, restores the
+launcher and reopens the app. The browser half only checks and downloads. The
+manual **Install and restart** button still uses the shell's own step, so it needs
+the install folder free; the automatic path does not.
 
 The panel's **Check now** runs the same pass at any time. The launch pass runs at
 most once every six hours; an interrupted pass (a reload during the run) resumes

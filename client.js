@@ -66,7 +66,7 @@ window.__ModuleLoader__.load({
         appDownloading: 'Downloading version {version} — {percent}%',
         appDownloadingUnknown: 'Downloading version {version}…',
         appReady: 'Version {version} is downloaded',
-        appInstalling: 'Installing version {version} and restarting…',
+        appInstalling: 'Installing version {version} — DSH NEXT closes briefly…',
         appManual: 'This build updates by hand — open the release page to get version {version}.',
         appError: 'The update could not complete ({reason}).',
         appUnsupported: 'App updates run inside the DSH NEXT desktop app; this window can only update plugins.',
@@ -97,7 +97,7 @@ window.__ModuleLoader__.load({
         reasonNetwork: 'Registry unreachable',
         reasonUnknown: 'Registry check failed',
         pluginManagerMissing: 'Plugin management is unavailable in this window.',
-        appInstallingSoon: 'Update downloaded — installing and restarting in a few seconds…',
+        appInstallingSoon: 'Handing version {version} to the installer — DSH NEXT closes briefly…',
         timeoutLabel: 'timed out',
         unknownLabel: 'unknown failure',
         prefPlugins: 'Update installed plugins on launch',
@@ -131,7 +131,7 @@ window.__ModuleLoader__.load({
         appDownloading: '正在下载版本 {version} — {percent}%',
         appDownloadingUnknown: '正在下载版本 {version}…',
         appReady: '版本 {version} 已下载',
-        appInstalling: '正在安装版本 {version} 并重启…',
+        appInstalling: '正在安装版本 {version}，DSH NEXT 会短暂关闭…',
         appManual: '此安装方式需手动更新，请到发布页下载版本 {version}。',
         appError: '更新未能完成（{reason}）。',
         appUnsupported: '应用自身的更新只在 DSH NEXT 桌面应用中执行；当前窗口只能更新插件。',
@@ -162,7 +162,7 @@ window.__ModuleLoader__.load({
         reasonNetwork: '无法连接注册表',
         reasonUnknown: '注册表检查失败',
         pluginManagerMissing: '当前窗口无法管理插件。',
-        appInstallingSoon: '更新已下载，几秒后自动安装并重启…',
+        appInstallingSoon: '正在把版本 {version} 交给安装器，DSH NEXT 会短暂关闭…',
         timeoutLabel: '超时',
         unknownLabel: '未知错误',
         prefPlugins: '启动时自动更新已安装的插件',
@@ -628,11 +628,18 @@ window.__ModuleLoader__.load({
         }
         patchApp({ phase: 'ready', percent: 100 })
         persist()
-        if (state.prefs.appInstall !== true) return
+        if (state.prefs.appInstall !== true) {
+          // Without automatic installation the package stays on disk; the panel's
+          // button installs it and needs the install folder free.
+          return
+        }
         patchApp({ phase: 'installing' })
         rememberInstall(version)
         persist()
-        await delay(4000)
+        // The plugin's Host half watches the shell's download directory and installs
+        // the package after releasing the folder, ending this window on the way. The
+        // shell's own install step is the fallback when that half is not running.
+        await delay(90 * 1000)
         try {
           await bridge.command({ type: 'install-update' })
         } catch (error) {
@@ -1022,7 +1029,7 @@ window.__ModuleLoader__.load({
                   : t('versionUnknown')),
               app.phase === 'ready' || app.phase === 'failedBefore'
                 ? app.phase === 'ready' && snapshot.prefs.appInstall === true
-                  ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appInstallingSoon'))
+                  ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appInstallingSoon', { version: app.version || '?' }))
                   : h('div', { className: 'dsh-next-auto-update-line' },
                       h('button', {
                         type: 'button',
@@ -1040,7 +1047,9 @@ window.__ModuleLoader__.load({
                 : null,
               app.phase === 'failedBefore'
                 ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appLockHint'))
-                : null,
+                : app.phase === 'ready' && snapshot.prefs.appInstall !== true
+                  ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appLockHint'))
+                  : null,
               app.phase === 'manual'
                 ? h('div', { className: 'dsh-next-auto-update-line' },
                     h('button', {
