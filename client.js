@@ -88,6 +88,9 @@ window.__ModuleLoader__.load({
         stepRestoring: 'Restoring the previous version',
         rolledBack: 'rolled back to {version}',
         claimedElsewhere: 'Another DSH window is already running the update.',
+        appFailedBefore: 'Version {version} did not install last time.',
+        installAgain: 'Install again',
+        appLockHint: 'If the installer reports that it cannot replace the folder, quit DSH NEXT and any program holding DSH NEXT.exe open — a browser-extension host, an Explorer window — then retry.',
         reasonGit: 'Installed from a Git commit',
         reasonNotUpdatable: 'Not updatable from a registry',
         reasonNotFound: 'Not found in the registry',
@@ -150,6 +153,9 @@ window.__ModuleLoader__.load({
         stepRestoring: '正在恢复旧版本',
         rolledBack: '已回滚到 {version}',
         claimedElsewhere: '另一个 DSH 窗口正在执行更新。',
+        appFailedBefore: '版本 {version} 上次没有安装成功。',
+        installAgain: '再次安装',
+        appLockHint: '安装器提示无法替换目录时，先退出 DSH NEXT，以及那些占用 DSH NEXT.exe 的程序（浏览器扩展宿主、资源管理器窗口），再重试。',
         reasonGit: '由 Git 提交安装',
         reasonNotUpdatable: '无法从注册表更新',
         reasonNotFound: '注册表中未找到',
@@ -292,6 +298,25 @@ window.__ModuleLoader__.load({
       let launchTimer = null
       /** Update request id → bundle name, so the Host's step events name a row. */
       const updateRequests = new Map()
+      /**
+       * What survives a reload besides the report: the app install this window
+       * started, and the version whose install failed, so a launch run does not
+       * repeat a doomed install of the same release.
+       */
+      const memory = {
+        pendingInstall: stored.pendingInstall !== null && typeof stored.pendingInstall === 'object' && typeof stored.pendingInstall.version === 'string'
+          ? stored.pendingInstall
+          : null,
+        failedInstall: stored.failedInstall !== null && typeof stored.failedInstall === 'object' && typeof stored.failedInstall.version === 'string'
+          ? stored.failedInstall
+          : null,
+      }
+
+      /** Merge a change into the stored record, keeping every other field. */
+      function saveRecord(change) {
+        const current = readStored()
+        writeStored({ ...current, ...change })
+      }
 
       /** Publish a new immutable snapshot and wake every subscriber. */
       function patch(next) {
@@ -322,7 +347,7 @@ window.__ModuleLoader__.load({
 
       /** Persist the preferences and the current report. */
       function persist() {
-        writeStored({
+        saveRecord({
           prefs: state.prefs,
           report: {
             finishedAt: state.finishedAt,
@@ -332,6 +357,46 @@ window.__ModuleLoader__.load({
             plugins: state.plugins,
           },
         })
+      }
+
+      /** Compare two release strings, ignoring a leading `v`. */
+      function sameVersion(left, right) {
+        if (typeof left !== 'string' || typeof right !== 'string') return false
+        const normalize = value => value.trim().replace(/^v/iu, '')
+        return normalize(left) === normalize(right) && normalize(left) !== ''
+      }
+
+      /**
+       * Settle the install this window started before the page was replaced: an
+       * unchanged running version means the installer could not replace the
+       * folder, so that release must not be auto-installed again.
+       * @param installed - the version the running app reports, if known.
+       */
+      function settlePendingInstall(installed) {
+        if (memory.pendingInstall === null) return
+        if (installed !== null && sameVersion(memory.pendingInstall.version, installed)) {
+          memory.pendingInstall = null
+          memory.failedInstall = null
+          saveRecord({ pendingInstall: null, failedInstall: null })
+          return
+        }
+        memory.failedInstall = { version: memory.pendingInstall.version, at: memory.pendingInstall.at, error: 'unchanged' }
+        memory.pendingInstall = null
+        saveRecord({ pendingInstall: null, failedInstall: memory.failedInstall })
+      }
+
+      /** Remember that this window asked the shell to install `version`. */
+      function rememberInstall(version) {
+        memory.pendingInstall = { version, at: Date.now() }
+        saveRecord({ pendingInstall: memory.pendingInstall })
+      }
+
+      /** Forget a failed install once the user asks for it again. */
+      function forgetFailure(version) {
+        if (memory.failedInstall === null) return
+        if (version !== null && version !== undefined && !sameVersion(memory.failedInstall.version, version)) return
+        memory.failedInstall = null
+        saveRecord({ failedInstall: null })
       }
 
       /** Resolve one dictionary key in the active language, falling back to English. */
@@ -467,8 +532,12 @@ window.__ModuleLoader__.load({
         }
       }
 
-      /** Check, download, and (by preference) install the DSH NEXT update through the shell. */
-      async function updateApp() {
+      /**
+       * Check, download, and (by preference) install the DSH NEXT update through
+       * the shell.
+       * @param reason - 'launch' refuses to repeat an install that already failed.
+       */
+      async function updateApp(reason) {
         const bridge = desktopBridge()
         if (bridge === undefined) {
           patchApp({ supported: false, phase: 'unsupported' })
@@ -476,7 +545,9 @@ window.__ModuleLoader__.load({
         }
         patchApp({ supported: true })
         const initial = await readDesktopState(bridge)
-        patchApp({ current: initial !== undefined && typeof initial.version === 'string' ? initial.version : null })
+        const installed = initial !== undefined && typeof initial.version === 'string' ? initial.version : null
+        patchApp({ current: installed })
+        settlePendingInstall(installed)
 
         let snapshot = initial === undefined ? undefined : initial.updates
         if (snapshot === undefined || snapshot.phase === 'idle' || snapshot.phase === 'error') {
@@ -515,8 +586,20 @@ window.__ModuleLoader__.load({
           return
         }
         patchApp({ phase: snapshot.phase, version })
+        // The shell's own comparison can offer the running release again; never
+        // reinstall a version this app already runs.
+        if (sameVersion(version, installed)) {
+          patchApp({ phase: 'current', version: installed })
+          return
+        }
         if (snapshot.installable !== true) {
           patchApp({ phase: 'manual', version })
+          return
+        }
+        // A launch run never repeats an install that did not take effect; the
+        // panel keeps it visible with a retry instead.
+        if (reason !== 'manual' && memory.failedInstall !== null && sameVersion(version, memory.failedInstall.version)) {
+          patchApp({ phase: 'failedBefore', version })
           return
         }
         if (snapshot.phase !== 'ready') {
@@ -547,6 +630,7 @@ window.__ModuleLoader__.load({
         persist()
         if (state.prefs.appInstall !== true) return
         patchApp({ phase: 'installing' })
+        rememberInstall(version)
         persist()
         await delay(4000)
         try {
@@ -560,7 +644,11 @@ window.__ModuleLoader__.load({
       async function installAppNow() {
         const bridge = desktopBridge()
         if (bridge === undefined || state.app.phase === 'installing') return
+        // An explicit retry clears the block for this release.
+        const target = typeof state.app.version === 'string' ? state.app.version : null
+        forgetFailure(target)
         patchApp({ phase: 'installing' })
+        rememberInstall(target)
         persist()
         try {
           await bridge.command({ type: 'install-update' })
@@ -591,6 +679,7 @@ window.__ModuleLoader__.load({
         const token = `${startedAt}-${Math.random().toString(36).slice(2, 8)}`
         const stored = readStored()
         writeStored({
+          ...stored,
           prefs: state.prefs,
           lastAttemptAt: startedAt,
           claim: token,
@@ -635,7 +724,7 @@ window.__ModuleLoader__.load({
           }
           if (state.prefs.app === true) {
             try {
-              await updateApp()
+              await updateApp(reason)
             } catch (error) {
               patchApp({ phase: 'error', error: failureText(error) })
             }
@@ -695,7 +784,7 @@ window.__ModuleLoader__.load({
       function setPreference(key, value) {
         const nextPrefs = { ...state.prefs, [key]: value }
         patch({ prefs: nextPrefs })
-        writeStored({ prefs: nextPrefs, report: { finishedAt: state.finishedAt } })
+        writeStored({ ...readStored(), prefs: nextPrefs })
         if (key === 'appInstall' && value === false && state.app.phase === 'installing') patchApp({ phase: 'ready' })
       }
 
@@ -878,13 +967,14 @@ window.__ModuleLoader__.load({
           case 'ready': return t('appReady', { version: app.version || '?' })
           case 'installing': return t('appInstalling', { version: app.version || '?' })
           case 'manual': return t('appManual', { version: app.version || '?' })
+          case 'failedBefore': return t('appFailedBefore', { version: app.version || '?' })
           case 'error': return t('appError', { reason: app.error || 'unknown' })
           default: return t('appIdle')
         }
       })()
       const appTone = app.phase === 'current'
         ? 'ok'
-        : app.phase === 'error'
+        : app.phase === 'error' || app.phase === 'failedBefore'
           ? 'bad'
           : app.phase === 'checking' || app.phase === 'downloading' || app.phase === 'installing'
             ? 'busy'
@@ -930,8 +1020,8 @@ window.__ModuleLoader__.load({
                 app.current !== null && app.current !== undefined
                   ? t('currentVersion', { version: app.current })
                   : t('versionUnknown')),
-              app.phase === 'ready'
-                ? snapshot.prefs.appInstall === true
+              app.phase === 'ready' || app.phase === 'failedBefore'
+                ? app.phase === 'ready' && snapshot.prefs.appInstall === true
                   ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appInstallingSoon'))
                   : h('div', { className: 'dsh-next-auto-update-line' },
                       h('button', {
@@ -939,7 +1029,17 @@ window.__ModuleLoader__.load({
                         className: 'dsh-next-auto-update-button',
                         'data-primary': 'true',
                         onClick: () => { void controller.installAppNow() },
-                      }, t('installNow')))
+                      }, app.phase === 'failedBefore' ? t('installAgain') : t('installNow')),
+                      app.phase === 'failedBefore'
+                        ? h('button', {
+                            type: 'button',
+                            className: 'dsh-next-auto-update-button',
+                            onClick: () => { controller.openReleasePage() },
+                          }, t('releasePage'))
+                        : null)
+                : null,
+              app.phase === 'failedBefore'
+                ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appLockHint'))
                 : null,
               app.phase === 'manual'
                 ? h('div', { className: 'dsh-next-auto-update-line' },

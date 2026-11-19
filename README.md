@@ -28,6 +28,13 @@ DSH NEXT itself — check, download the signed installer, install, restart.
    package and restarts the app. Portable and Linux builds have no in-app
    installer; their row offers the release page instead.
 
+Two safety rules apply to the app half: a version the app already runs is never
+installed again (the shell's comparison can otherwise offer the running release),
+and a release whose install did not take effect is not retried automatically — the
+panel keeps it visible with **Install again**, because a Windows install fails the
+same way until whatever holds `DSH NEXT.exe` open (a browser-extension host, an
+Explorer window) is closed.
+
 The panel's **Check now** runs the same pass at any time. The launch pass runs at
 most once every six hours; an interrupted pass (a reload during the run) resumes
 after 90 seconds. Preferences and the last report live in the window's local
