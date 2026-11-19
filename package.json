@@ -1,5 +1,5 @@
 {
-  "name": "dsh-auto-update",
+  "name": "dsh-next-auto-update",
   "version": "1.1.0",
   "private": true,
   "type": "module",
@@ -15,11 +15,11 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/lijianbin2/dsh-auto-update.git"
+    "url": "git+https://github.com/lijianbin2/dsh-next-auto-update.git"
   },
-  "homepage": "https://github.com/lijianbin2/dsh-auto-update#readme",
+  "homepage": "https://github.com/lijianbin2/dsh-next-auto-update#readme",
   "bugs": {
-    "url": "https://github.com/lijianbin2/dsh-auto-update/issues"
+    "url": "https://github.com/lijianbin2/dsh-next-auto-update/issues"
   },
   "exports": {
     ".": "./index.js",

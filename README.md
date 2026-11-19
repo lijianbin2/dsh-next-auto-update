@@ -1,4 +1,4 @@
-# dsh-auto-update
+# dsh-next-auto-update
 
 A left-sidebar page for DeepSeek Harness (DSH) that keeps the harness current:
 when DSH NEXT opens, it updates every registry-installed plugin, then updates
@@ -55,7 +55,7 @@ storage, and two DSH windows cannot run a pass at the same time.
 From the Plugins page or the CLI:
 
 ```sh
-dsh plugin add lijianbin2/dsh-auto-update
+dsh plugin add lijianbin2/dsh-next-auto-update
 ```
 
 Or **Plugins → Add plugin → local directory** and point it at a checkout of this

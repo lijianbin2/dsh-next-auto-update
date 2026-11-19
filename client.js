@@ -19,15 +19,15 @@
  */
 
 window.__ModuleLoader__.load({
-  id: 'dsh-auto-update',
+  id: 'dsh-next-auto-update',
   factory(require) {
     const React = require('react')
     const h = React.createElement
 
     const NS = 'autoUpdate'
     const PANEL_ID = 'auto-update'
-    const OWN_PACKAGE = 'dsh-auto-update'
-    const STORAGE_KEY = 'dsh-auto-update/v1'
+    const OWN_PACKAGE = 'dsh-next-auto-update'
+    const STORAGE_KEY = 'dsh-next-auto-update/v1'
     const RELEASES_URL = 'https://github.com/anywhere-labs/dsh-desktop/releases'
 
     /** A finished launch run suppresses the next ones for this long. */
@@ -731,52 +731,52 @@ window.__ModuleLoader__.load({
     /** The page's own styles; unmounting the page removes them. */
     function styles() {
       return h('style', { key: 'styles' }, `
-        .dsh-auto-update-root { height: 100%; overflow: auto; padding: 20px 24px 40px; color: var(--dsw-alias-label-primary); }
-        .dsh-auto-update-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
-        .dsh-auto-update-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
-        .dsh-auto-update-head-text { min-width: 0; }
-        .dsh-auto-update-title { margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; }
-        .dsh-auto-update-sub { margin: 2px 0 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
-        .dsh-auto-update-meta { margin: 2px 0 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
-        .dsh-auto-update-card { border: 0.5px solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); padding: 12px 16px; }
-        .dsh-auto-update-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-        .dsh-auto-update-card-title { margin: 0; font-size: 13px; line-height: 20px; font-weight: 600; }
-        .dsh-auto-update-hint { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
-        .dsh-auto-update-bad { color: var(--dsw-alias-state-error-primary); }
-        .dsh-auto-update-body { font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 8px; }
-        .dsh-auto-update-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
-        .dsh-auto-update-dot { width: 8px; height: 8px; border-radius: 50%; corner-shape: round; flex: none; background: var(--dsw-alias-state-idle-primary); }
-        .dsh-auto-update-dot[data-tone="busy"] { background: var(--dsw-alias-brand-primary); }
-        .dsh-auto-update-dot[data-tone="ok"] { background: var(--dsw-alias-state-success-primary); }
-        .dsh-auto-update-dot[data-tone="warn"] { background: var(--dsw-alias-state-warn-primary); }
-        .dsh-auto-update-dot[data-tone="bad"] { background: var(--dsw-alias-state-error-primary); }
-        .dsh-auto-update-button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 10px; border: 0.5px solid transparent; border-radius: var(--dsw-radius-sm); box-shadow: inset 0 0 0 var(--dsh-hairline-width, 0.5px) var(--dsh-button-outline-color, var(--dsw-alias-border-l3)); background: transparent; color: var(--dsw-alias-label-primary); font-family: inherit; font-size: 12px; line-height: 18px; white-space: nowrap; cursor: pointer; }
-        .dsh-auto-update-button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
-        .dsh-auto-update-button:active:not(:disabled) { background: var(--dsw-alias-interactive-bg-active); }
-        .dsh-auto-update-button:disabled { cursor: not-allowed; opacity: 0.4; }
-        .dsh-auto-update-button:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
-        .dsh-auto-update-button[data-primary="true"] { border: 0; box-shadow: none; background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-foreground); }
-        .dsh-auto-update-button[data-primary="true"]:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover); }
-        .dsh-auto-update-rows { display: flex; flex-direction: column; }
-        .dsh-auto-update-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 7px 0; border-top: 1px solid var(--dsw-alias-border-l1); font-size: 13px; line-height: 20px; }
-        .dsh-auto-update-row:first-child { border-top: 0; }
-        .dsh-auto-update-row-main { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex-wrap: wrap; }
-        .dsh-auto-update-name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .dsh-auto-update-version { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
-        .dsh-auto-update-detail { grid-column: 1 / -1; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
-        .dsh-auto-update-state { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
-        .dsh-auto-update-state[data-tone="busy"] { color: var(--dsw-alias-brand-primary); }
-        .dsh-auto-update-state[data-tone="ok"] { color: var(--dsw-alias-state-success-primary); }
-        .dsh-auto-update-state[data-tone="bad"] { color: var(--dsw-alias-state-error-primary); }
-        .dsh-auto-update-state[data-tone="warn"] { color: var(--dsw-alias-state-warn-primary); }
-        .dsh-auto-update-pref { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 36px; font-size: 13px; line-height: 20px; border-top: 1px solid var(--dsw-alias-border-l1); }
-        .dsh-auto-update-pref:first-child { border-top: 0; }
-        .dsh-auto-update-switch { box-sizing: border-box; position: relative; flex: 0 0 auto; width: 36px; height: 20px; padding: 2px; border: 0; border-radius: 999px; corner-shape: round; background: var(--dsw-alias-border-l3); cursor: pointer; }
-        .dsh-auto-update-switch[aria-checked="true"] { background: var(--dsw-alias-brand-primary); }
-        .dsh-auto-update-switch:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
-        .dsh-auto-update-knob { display: block; width: 16px; height: 16px; border-radius: 50%; corner-shape: round; background: var(--dsw-alias-switch-thumb); transition: transform 120ms ease; }
-        .dsh-auto-update-switch[aria-checked="true"] .dsh-auto-update-knob { transform: translateX(16px); background: var(--dsw-alias-label-primary-foreground); }
-        .dsh-auto-update-footer { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); margin: 0; }
+        .dsh-next-auto-update-root { height: 100%; overflow: auto; padding: 20px 24px 40px; color: var(--dsw-alias-label-primary); }
+        .dsh-next-auto-update-inner { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; gap: 14px; }
+        .dsh-next-auto-update-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+        .dsh-next-auto-update-head-text { min-width: 0; }
+        .dsh-next-auto-update-title { margin: 0; font-size: 18px; line-height: 26px; font-weight: 600; }
+        .dsh-next-auto-update-sub { margin: 2px 0 0; font-size: 13px; line-height: 20px; color: var(--dsw-alias-label-secondary); }
+        .dsh-next-auto-update-meta { margin: 2px 0 0; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); }
+        .dsh-next-auto-update-card { border: 0.5px solid var(--dsw-alias-settings-card-stroke); border-radius: var(--dsw-radius-xl); background: var(--dsw-alias-settings-card-fill); padding: 12px 16px; }
+        .dsh-next-auto-update-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+        .dsh-next-auto-update-card-title { margin: 0; font-size: 13px; line-height: 20px; font-weight: 600; }
+        .dsh-next-auto-update-hint { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+        .dsh-next-auto-update-bad { color: var(--dsw-alias-state-error-primary); }
+        .dsh-next-auto-update-body { font-size: 13px; line-height: 20px; display: flex; flex-direction: column; gap: 8px; }
+        .dsh-next-auto-update-line { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; overflow-wrap: anywhere; }
+        .dsh-next-auto-update-dot { width: 8px; height: 8px; border-radius: 50%; corner-shape: round; flex: none; background: var(--dsw-alias-state-idle-primary); }
+        .dsh-next-auto-update-dot[data-tone="busy"] { background: var(--dsw-alias-brand-primary); }
+        .dsh-next-auto-update-dot[data-tone="ok"] { background: var(--dsw-alias-state-success-primary); }
+        .dsh-next-auto-update-dot[data-tone="warn"] { background: var(--dsw-alias-state-warn-primary); }
+        .dsh-next-auto-update-dot[data-tone="bad"] { background: var(--dsw-alias-state-error-primary); }
+        .dsh-next-auto-update-button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; height: 28px; padding: 0 10px; border: 0.5px solid transparent; border-radius: var(--dsw-radius-sm); box-shadow: inset 0 0 0 var(--dsh-hairline-width, 0.5px) var(--dsh-button-outline-color, var(--dsw-alias-border-l3)); background: transparent; color: var(--dsw-alias-label-primary); font-family: inherit; font-size: 12px; line-height: 18px; white-space: nowrap; cursor: pointer; }
+        .dsh-next-auto-update-button:hover:not(:disabled) { background: var(--dsw-alias-interactive-bg-hover); }
+        .dsh-next-auto-update-button:active:not(:disabled) { background: var(--dsw-alias-interactive-bg-active); }
+        .dsh-next-auto-update-button:disabled { cursor: not-allowed; opacity: 0.4; }
+        .dsh-next-auto-update-button:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
+        .dsh-next-auto-update-button[data-primary="true"] { border: 0; box-shadow: none; background: var(--dsw-alias-button-primary-fill); color: var(--dsw-alias-label-primary-foreground); }
+        .dsh-next-auto-update-button[data-primary="true"]:hover:not(:disabled) { background: var(--dsw-alias-button-primary-hover); }
+        .dsh-next-auto-update-rows { display: flex; flex-direction: column; }
+        .dsh-next-auto-update-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 2px 12px; padding: 7px 0; border-top: 1px solid var(--dsw-alias-border-l1); font-size: 13px; line-height: 20px; }
+        .dsh-next-auto-update-row:first-child { border-top: 0; }
+        .dsh-next-auto-update-row-main { display: flex; align-items: baseline; gap: 8px; min-width: 0; flex-wrap: wrap; }
+        .dsh-next-auto-update-name { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .dsh-next-auto-update-version { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
+        .dsh-next-auto-update-detail { grid-column: 1 / -1; font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); overflow-wrap: anywhere; }
+        .dsh-next-auto-update-state { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); white-space: nowrap; }
+        .dsh-next-auto-update-state[data-tone="busy"] { color: var(--dsw-alias-brand-primary); }
+        .dsh-next-auto-update-state[data-tone="ok"] { color: var(--dsw-alias-state-success-primary); }
+        .dsh-next-auto-update-state[data-tone="bad"] { color: var(--dsw-alias-state-error-primary); }
+        .dsh-next-auto-update-state[data-tone="warn"] { color: var(--dsw-alias-state-warn-primary); }
+        .dsh-next-auto-update-pref { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 36px; font-size: 13px; line-height: 20px; border-top: 1px solid var(--dsw-alias-border-l1); }
+        .dsh-next-auto-update-pref:first-child { border-top: 0; }
+        .dsh-next-auto-update-switch { box-sizing: border-box; position: relative; flex: 0 0 auto; width: 36px; height: 20px; padding: 2px; border: 0; border-radius: 999px; corner-shape: round; background: var(--dsw-alias-border-l3); cursor: pointer; }
+        .dsh-next-auto-update-switch[aria-checked="true"] { background: var(--dsw-alias-brand-primary); }
+        .dsh-next-auto-update-switch:focus-visible { outline: var(--dsw-focus-ring-width) solid var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary)); outline-offset: 2px; }
+        .dsh-next-auto-update-knob { display: block; width: 16px; height: 16px; border-radius: 50%; corner-shape: round; background: var(--dsw-alias-switch-thumb); transition: transform 120ms ease; }
+        .dsh-next-auto-update-switch[aria-checked="true"] .dsh-next-auto-update-knob { transform: translateX(16px); background: var(--dsw-alias-label-primary-foreground); }
+        .dsh-next-auto-update-footer { font-size: 12px; line-height: 18px; color: var(--dsw-alias-label-secondary); margin: 0; }
       `)
     }
 
@@ -784,12 +784,12 @@ window.__ModuleLoader__.load({
     function Switch({ checked, label, onToggle }) {
       return h('button', {
         type: 'button',
-        className: 'dsh-auto-update-switch',
+        className: 'dsh-next-auto-update-switch',
         role: 'switch',
         'aria-checked': checked === true ? 'true' : 'false',
         'aria-label': label,
         onClick: onToggle,
-      }, h('span', { className: 'dsh-auto-update-knob' }))
+      }, h('span', { className: 'dsh-next-auto-update-knob' }))
     }
 
     /** The sidebar's entry glyph: a ring around a downward arrow, in the sidebar's own color. */
@@ -849,12 +849,12 @@ window.__ModuleLoader__.load({
       const extra = [stepText, explanation, rollbackText, row.note]
         .filter(part => part !== null && part !== undefined && part !== '')
         .join(' · ')
-      return h('div', { className: 'dsh-auto-update-row' },
-        h('div', { className: 'dsh-auto-update-row-main' },
-          h('span', { className: 'dsh-auto-update-name', title: row.name }, row.name),
-          move !== '' ? h('span', { className: 'dsh-auto-update-version' }, move) : null),
-        h('span', { className: 'dsh-auto-update-state', 'data-tone': tone }, t(statusKey)),
-        extra !== '' ? h('span', { className: 'dsh-auto-update-detail' }, extra) : null)
+      return h('div', { className: 'dsh-next-auto-update-row' },
+        h('div', { className: 'dsh-next-auto-update-row-main' },
+          h('span', { className: 'dsh-next-auto-update-name', title: row.name }, row.name),
+          move !== '' ? h('span', { className: 'dsh-next-auto-update-version' }, move) : null),
+        h('span', { className: 'dsh-next-auto-update-state', 'data-tone': tone }, t(statusKey)),
+        extra !== '' ? h('span', { className: 'dsh-next-auto-update-detail' }, extra) : null)
     }
 
     /** The Auto update page in the main column. */
@@ -892,102 +892,102 @@ window.__ModuleLoader__.load({
               ? 'warn'
               : undefined
 
-      return h('div', { className: 'dsh-auto-update-root' },
+      return h('div', { className: 'dsh-next-auto-update-root' },
         styles(),
-        h('div', { className: 'dsh-auto-update-inner' },
-          h('div', { className: 'dsh-auto-update-head' },
-            h('div', { className: 'dsh-auto-update-head-text' },
-              h('h1', { className: 'dsh-auto-update-title' }, t('title')),
-              h('p', { className: 'dsh-auto-update-sub' }, t('subtitle')),
-              h('p', { className: 'dsh-auto-update-meta' },
+        h('div', { className: 'dsh-next-auto-update-inner' },
+          h('div', { className: 'dsh-next-auto-update-head' },
+            h('div', { className: 'dsh-next-auto-update-head-text' },
+              h('h1', { className: 'dsh-next-auto-update-title' }, t('title')),
+              h('p', { className: 'dsh-next-auto-update-sub' }, t('subtitle')),
+              h('p', { className: 'dsh-next-auto-update-meta' },
                 snapshot.finishedAt !== null && snapshot.finishedAt !== undefined
                   ? `${t('lastRun', { when: controller.whenText(snapshot.finishedAt) })} · ${snapshot.reason === 'manual' ? t('runManual') : t('runAuto')}`
                   : t('neverRun'))),
             h('button', {
               type: 'button',
-              className: 'dsh-auto-update-button',
+              className: 'dsh-next-auto-update-button',
               'data-primary': 'true',
               disabled: running,
               onClick: () => { void controller.run('manual') },
             }, running ? t('running') : t('checkNow'))),
 
           snapshot.note === 'skipped-recent'
-            ? h('div', { className: 'dsh-auto-update-hint', 'aria-live': 'polite' }, t('skippedRecent'))
+            ? h('div', { className: 'dsh-next-auto-update-hint', 'aria-live': 'polite' }, t('skippedRecent'))
             : snapshot.note === 'claimed-elsewhere'
-              ? h('div', { className: 'dsh-auto-update-hint', 'aria-live': 'polite' }, t('claimedElsewhere'))
+              ? h('div', { className: 'dsh-next-auto-update-hint', 'aria-live': 'polite' }, t('claimedElsewhere'))
               : snapshot.note !== null && snapshot.note !== undefined
-                ? h('div', { className: 'dsh-auto-update-hint dsh-auto-update-bad', 'aria-live': 'polite' }, t('pluginError', { reason: snapshot.note }))
+                ? h('div', { className: 'dsh-next-auto-update-hint dsh-next-auto-update-bad', 'aria-live': 'polite' }, t('pluginError', { reason: snapshot.note }))
                 : null,
 
-          h('section', { className: 'dsh-auto-update-card' },
-            h('div', { className: 'dsh-auto-update-card-head' },
-              h('h2', { className: 'dsh-auto-update-card-title' }, t('appSection'))),
-            h('div', { className: 'dsh-auto-update-body' },
-              h('div', { className: 'dsh-auto-update-line', role: 'status', 'aria-live': 'polite' },
-                h('span', { className: 'dsh-auto-update-dot', 'data-tone': appTone }),
+          h('section', { className: 'dsh-next-auto-update-card' },
+            h('div', { className: 'dsh-next-auto-update-card-head' },
+              h('h2', { className: 'dsh-next-auto-update-card-title' }, t('appSection'))),
+            h('div', { className: 'dsh-next-auto-update-body' },
+              h('div', { className: 'dsh-next-auto-update-line', role: 'status', 'aria-live': 'polite' },
+                h('span', { className: 'dsh-next-auto-update-dot', 'data-tone': appTone }),
                 h('span', null, appText)),
-              h('div', { className: 'dsh-auto-update-hint' },
+              h('div', { className: 'dsh-next-auto-update-hint' },
                 app.current !== null && app.current !== undefined
                   ? t('currentVersion', { version: app.current })
                   : t('versionUnknown')),
               app.phase === 'ready'
                 ? snapshot.prefs.appInstall === true
-                  ? h('div', { className: 'dsh-auto-update-hint' }, t('appInstallingSoon'))
-                  : h('div', { className: 'dsh-auto-update-line' },
+                  ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appInstallingSoon'))
+                  : h('div', { className: 'dsh-next-auto-update-line' },
                       h('button', {
                         type: 'button',
-                        className: 'dsh-auto-update-button',
+                        className: 'dsh-next-auto-update-button',
                         'data-primary': 'true',
                         onClick: () => { void controller.installAppNow() },
                       }, t('installNow')))
                 : null,
               app.phase === 'manual'
-                ? h('div', { className: 'dsh-auto-update-line' },
+                ? h('div', { className: 'dsh-next-auto-update-line' },
                     h('button', {
                       type: 'button',
-                      className: 'dsh-auto-update-button',
+                      className: 'dsh-next-auto-update-button',
                       onClick: () => { controller.openReleasePage() },
                     }, t('releasePage')))
                 : null)),
 
-          h('section', { className: 'dsh-auto-update-card', 'aria-busy': running ? 'true' : 'false' },
-            h('div', { className: 'dsh-auto-update-card-head' },
-              h('h2', { className: 'dsh-auto-update-card-title' }, t('pluginsSection')),
-              h('span', { className: 'dsh-auto-update-hint' }, running ? t('checkingList') : '')),
+          h('section', { className: 'dsh-next-auto-update-card', 'aria-busy': running ? 'true' : 'false' },
+            h('div', { className: 'dsh-next-auto-update-card-head' },
+              h('h2', { className: 'dsh-next-auto-update-card-title' }, t('pluginsSection')),
+              h('span', { className: 'dsh-next-auto-update-hint' }, running ? t('checkingList') : '')),
             snapshot.plugins.length === 0
-              ? h('div', { className: 'dsh-auto-update-hint' },
+              ? h('div', { className: 'dsh-next-auto-update-hint' },
                   running
                     ? t('checkingList')
                     : snapshot.finishedAt === null || snapshot.finishedAt === undefined ? t('notChecked') : t('none'))
-              : h('div', { className: 'dsh-auto-update-rows' },
+              : h('div', { className: 'dsh-next-auto-update-rows' },
                   snapshot.plugins.map(row => h(PluginRow, { key: row.name, row, t })))),
 
-          h('section', { className: 'dsh-auto-update-card' },
-            h('div', { className: 'dsh-auto-update-card-head' },
-              h('h2', { className: 'dsh-auto-update-card-title' }, t('prefsSection'))),
+          h('section', { className: 'dsh-next-auto-update-card' },
+            h('div', { className: 'dsh-next-auto-update-card-head' },
+              h('h2', { className: 'dsh-next-auto-update-card-title' }, t('prefsSection'))),
             h('div', null,
-              h('div', { className: 'dsh-auto-update-pref' },
+              h('div', { className: 'dsh-next-auto-update-pref' },
                 h('span', null, t('prefPlugins')),
                 h(Switch, {
                   checked: snapshot.prefs.plugins === true,
                   label: t('prefPlugins'),
                   onToggle: () => { controller.setPreference('plugins', snapshot.prefs.plugins !== true) },
                 })),
-              h('div', { className: 'dsh-auto-update-pref' },
+              h('div', { className: 'dsh-next-auto-update-pref' },
                 h('span', null, t('prefApp')),
                 h(Switch, {
                   checked: snapshot.prefs.app === true,
                   label: t('prefApp'),
                   onToggle: () => { controller.setPreference('app', snapshot.prefs.app !== true) },
                 })),
-              h('div', { className: 'dsh-auto-update-pref' },
+              h('div', { className: 'dsh-next-auto-update-pref' },
                 h('span', null, t('prefAppInstall')),
                 h(Switch, {
                   checked: snapshot.prefs.appInstall === true,
                   label: t('prefAppInstall'),
                   onToggle: () => { controller.setPreference('appInstall', snapshot.prefs.appInstall !== true) },
                 })),
-              h('div', { className: 'dsh-auto-update-pref' },
+              h('div', { className: 'dsh-next-auto-update-pref' },
                 h('span', null, t('prefPrerelease')),
                 h(Switch, {
                   checked: snapshot.prefs.prerelease === true,
@@ -995,7 +995,7 @@ window.__ModuleLoader__.load({
                   onToggle: () => { controller.setPreference('prerelease', snapshot.prefs.prerelease !== true) },
                 })))),
 
-          h('p', { className: 'dsh-auto-update-footer' }, t('footer'))))
+          h('p', { className: 'dsh-next-auto-update-footer' }, t('footer'))))
     }
 
     return {
