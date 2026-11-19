@@ -122,17 +122,34 @@ function spawnInstall(installerPath, appDir, scriptPath, logPath) {
 }
 
 /**
+ * Locate the DSH NEXT installation directory, or undefined when this is not the
+ * packaged desktop app. The Host's own `DSH_INSTALL_DIR` is not guaranteed, so the
+ * executable's neighbourhood is searched as well.
+ * @returns the directory holding `DSH NEXT.exe` and `resources/app.asar`.
+ */
+function findAppDir() {
+  const candidates = []
+  const installDir = process.env.DSH_INSTALL_DIR
+  if (typeof installDir === 'string' && installDir.length > 0) candidates.push(dirname(dirname(installDir)))
+  let directory = dirname(process.execPath)
+  for (let depth = 0; depth < 5; depth += 1) {
+    candidates.push(directory)
+    const parent = dirname(directory)
+    if (parent === directory) break
+    directory = parent
+  }
+  for (const candidate of candidates) {
+    if (existsSync(join(candidate, 'DSH NEXT.exe')) || existsSync(join(candidate, 'resources', 'app.asar'))) return candidate
+  }
+  return undefined
+}
+
+/**
  * Watch for a downloaded update and install it once.
  * @param ctx - the Host plugin context.
  */
 export function apply(ctx) {
-  const installDir = process.env.DSH_INSTALL_DIR ?? ''
-  // Only the packaged desktop app can be updated this way.
-  if (!/app\.asar$/iu.test(installDir)) return
   const home = process.env.DSH_HOME ?? join(process.env.USERPROFILE ?? '', '.dsh')
-  const appDir = dirname(dirname(installDir))
-  const updatesDir = join(home, 'electron-user-data', 'next-updates')
-  const scriptPath = join(packageDir, 'scripts', 'desktop-install.ps1')
   const logDir = join(home, 'logs')
   const logPath = join(logDir, 'next-auto-update-install.log')
 
@@ -144,6 +161,18 @@ export function apply(ctx) {
       // Diagnostics never decide whether an install runs.
     }
   }
+
+  // Log first: a silent return here is undiagnosable from the outside.
+  log('host half starting')
+  const appDir = findAppDir()
+  const desktopData = existsSync(join(home, 'electron-user-data'))
+  log(`app dir: ${appDir ?? 'not found'}; desktop data: ${desktopData}; execPath: ${process.execPath}`)
+  if (appDir === undefined || !desktopData) {
+    log('not the packaged desktop app; installer watcher not started')
+    return
+  }
+  const updatesDir = join(home, 'electron-user-data', 'next-updates')
+  const scriptPath = join(packageDir, 'scripts', 'desktop-install.ps1')
 
   if (!existsSync(scriptPath)) {
     log(`install wrapper missing: ${scriptPath}`)
