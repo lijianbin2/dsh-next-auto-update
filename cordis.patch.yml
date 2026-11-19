@@ -1,0 +1,3 @@
+- insert:
+    - id: auto-update
+      name: 'dsh-auto-update'

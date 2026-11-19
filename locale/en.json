@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Auto update",
+    "description": "Adds an Auto update entry to the left sidebar. Whenever DSH NEXT opens, it updates every installed registry bundle to its newest compatible version and updates the DSH NEXT app itself: it checks, downloads and installs the official release, then restarts. Plugins update immediately; an app update restarts the app, so finish what you are typing first. Turn either half off, or exclude pre-release plugin versions, in the panel's Preferences. Bundles installed from a Git commit and bundles shipped with the installation are not changed by it."
+  }
+}
