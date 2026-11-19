@@ -57,8 +57,8 @@ function Get-AsarSize {
 # script it was started from, and the default lives under the user's ~/.dsh.
 function Get-Launchers {
   $found = New-Object System.Collections.Generic.List[string]
-  foreach ($host in @(Get-BridgeHosts)) {
-    if ($host.CommandLine -match '([A-Za-z]:\\[^"]*?run\.bat)') {
+  foreach ($bridge in @(Get-BridgeHosts)) {
+    if ($bridge.CommandLine -match '([A-Za-z]:\\[^"]*?run\.bat)') {
       $candidate = $Matches[1]
       if (-not $found.Contains($candidate)) { $found.Add($candidate) }
     }
@@ -95,11 +95,21 @@ try {
   }
 
   # 2. End whatever is still running from the install folder.
-  foreach ($host in @(Get-BridgeHosts)) {
-    Write-Log ("ending bridge host pid " + $host.ProcessId)
-    Stop-Process -Id $host.ProcessId -Force -ErrorAction SilentlyContinue
+  foreach ($bridge in @(Get-BridgeHosts)) {
+    Write-Log ("ending bridge host pid " + $bridge.ProcessId)
+    Stop-Process -Id $bridge.ProcessId -Force -ErrorAction SilentlyContinue
   }
   Start-Sleep -Milliseconds 500
+
+  if ($DryRun) {
+    # Prove the launcher handling without closing the app or touching the install.
+    Start-Sleep -Seconds 6
+    $still = @(Get-BridgeHosts)
+    Write-Log ('dry run: bridge hosts after 6s = ' + $still.Count + ' (0 means Chrome cannot recreate them)')
+    Write-Log 'dry run: skipping DSH NEXT shutdown and the installer'
+    exit 0
+  }
+
   $appDeadline = (Get-Date).AddSeconds($WaitForAppSeconds)
   do {
     $running = @(Get-AppProcesses)
