@@ -90,6 +90,7 @@ window.__ModuleLoader__.load({
         claimedElsewhere: 'Another DSH window is already running the update.',
         appFailedBefore: 'Version {version} did not install last time.',
         installAgain: 'Install again',
+        downloadAndInstall: 'Download and install',
         appLockHint: 'If the installer reports that it cannot replace the folder, quit DSH NEXT and any program holding DSH NEXT.exe open — a browser-extension host, an Explorer window — then retry.',
         reasonGit: 'Installed from a Git commit',
         reasonNotUpdatable: 'Not updatable from a registry',
@@ -155,6 +156,7 @@ window.__ModuleLoader__.load({
         claimedElsewhere: '另一个 DSH 窗口正在执行更新。',
         appFailedBefore: '版本 {version} 上次没有安装成功。',
         installAgain: '再次安装',
+        downloadAndInstall: '下载并安装',
         appLockHint: '安装器提示无法替换目录时，先退出 DSH NEXT，以及那些占用 DSH NEXT.exe 的程序（浏览器扩展宿主、资源管理器窗口），再重试。',
         reasonGit: '由 Git 提交安装',
         reasonNotUpdatable: '无法从注册表更新',
@@ -602,6 +604,13 @@ window.__ModuleLoader__.load({
           patchApp({ phase: 'failedBefore', version })
           return
         }
+        // Without automatic installation the app half only checks: the plugin's
+        // Host half installs whatever the shell downloads, so a download here would
+        // install too. The panel's "download and install" button asks explicitly.
+        if (state.prefs.appInstall !== true) {
+          patchApp({ phase: 'available', version })
+          return
+        }
         if (snapshot.phase !== 'ready') {
           try {
             await bridge.command({ type: 'download-update' })
@@ -628,23 +637,64 @@ window.__ModuleLoader__.load({
         }
         patchApp({ phase: 'ready', percent: 100 })
         persist()
-        if (state.prefs.appInstall !== true) {
-          // Without automatic installation the package stays on disk; the panel's
-          // button installs it and needs the install folder free.
-          return
-        }
         patchApp({ phase: 'installing' })
         rememberInstall(version)
         persist()
-        // The plugin's Host half watches the shell's download directory and installs
-        // the package after releasing the folder, ending this window on the way. The
-        // shell's own install step is the fallback when that half is not running.
-        await delay(90 * 1000)
+        await handOverToInstaller(bridge)
+      }
+
+      /**
+       * Leave the downloaded package to the plugin's Host half, which installs it
+       * after releasing the install folder and ends this window on the way. Falling
+       * through means that half is not running, so the shell's own install step is
+       * the fallback.
+       * @param bridge - the desktop update bridge.
+       */
+      async function handOverToInstaller(bridge) {
+        await delay(45 * 1000)
         try {
           await bridge.command({ type: 'install-update' })
         } catch (error) {
           patchApp({ phase: 'error', error: failureText(error) })
         }
+      }
+
+      /**
+       * Download the release and let it install, for the panel's explicit button
+       * while automatic installation is off.
+       */
+      async function downloadAndInstall() {
+        const bridge = desktopBridge()
+        if (bridge === undefined || state.app.phase === 'installing' || state.app.phase === 'downloading') return
+        const target = typeof state.app.version === 'string' ? state.app.version : null
+        forgetFailure(target)
+        patchApp({ phase: 'downloading', percent: null })
+        try {
+          await bridge.command({ type: 'download-update' })
+        } catch (error) {
+          patchApp({ phase: 'error', error: failureText(error) })
+          return
+        }
+        const snapshot = await waitForUpdatePhase(
+          bridge,
+          candidate => candidate.phase === 'ready' || candidate.phase === 'error',
+          30 * 60 * 1000,
+          candidate => {
+            if (candidate === undefined) return
+            const percent = typeof candidate.total === 'number' && candidate.total > 0
+              ? Math.min(100, Math.floor((candidate.received || 0) / candidate.total * 100))
+              : null
+            patchApp({ phase: candidate.phase, version: candidate.version || target, percent })
+          },
+        )
+        if (snapshot === undefined || snapshot.phase !== 'ready') {
+          patchApp({ phase: 'error', error: snapshot === undefined ? t('timeoutLabel') : failureText(snapshot.error) })
+          return
+        }
+        patchApp({ phase: 'installing', version: snapshot.version || target, percent: 100 })
+        rememberInstall(snapshot.version || target)
+        persist()
+        await handOverToInstaller(bridge)
       }
 
       /** Install the already-downloaded app update on request; a second click while it installs is ignored. */
@@ -806,6 +856,7 @@ window.__ModuleLoader__.load({
         run,
         scheduleLaunchRun,
         installAppNow,
+        downloadAndInstall,
         openReleasePage,
         setPreference,
         updateProgress,
@@ -1027,6 +1078,15 @@ window.__ModuleLoader__.load({
                 app.current !== null && app.current !== undefined
                   ? t('currentVersion', { version: app.current })
                   : t('versionUnknown')),
+              app.phase === 'available'
+                ? h('div', { className: 'dsh-next-auto-update-line' },
+                    h('button', {
+                      type: 'button',
+                      className: 'dsh-next-auto-update-button',
+                      'data-primary': 'true',
+                      onClick: () => { void controller.downloadAndInstall() },
+                    }, t('downloadAndInstall')))
+                : null,
               app.phase === 'ready' || app.phase === 'failedBefore'
                 ? app.phase === 'ready' && snapshot.prefs.appInstall === true
                   ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appInstallingSoon', { version: app.version || '?' }))
@@ -1047,9 +1107,7 @@ window.__ModuleLoader__.load({
                 : null,
               app.phase === 'failedBefore'
                 ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appLockHint'))
-                : app.phase === 'ready' && snapshot.prefs.appInstall !== true
-                  ? h('div', { className: 'dsh-next-auto-update-hint' }, t('appLockHint'))
-                  : null,
+                : null,
               app.phase === 'manual'
                 ? h('div', { className: 'dsh-next-auto-update-line' },
                     h('button', {

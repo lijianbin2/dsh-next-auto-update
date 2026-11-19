@@ -57,8 +57,10 @@ storage, and two DSH windows cannot run a pass at the same time.
 
 - **Update installed plugins on launch**
 - **Update DSH NEXT on launch**
-- **Install app updates and restart automatically** — off means "download only";
-  the panel then offers the install step as a button.
+- **Install app updates and restart automatically** — off means "check only"; the
+  panel then offers a **Download and install** button. The switch controls the
+  download, because whatever the shell downloads is what the plugin's Host half
+  installs.
 - **Include pre-release plugin versions**
 
 ## What it does not touch
@@ -67,8 +69,8 @@ storage, and two DSH windows cannot run a pass at the same time.
   plugin manager marks them non-updatable, and they move with DSH NEXT.
 - Packages installed from a local path or a pinned Git commit: they are listed as
   skipped, since no registry version applies.
-- It never downloads or runs an installer itself; the app update goes through the
-  shell's own updater, which verifies and stages the package.
+- It never downloads a package from the internet: the desktop shell fetches the
+  release, and only the official installer it produced is run.
 
 ## Install
 

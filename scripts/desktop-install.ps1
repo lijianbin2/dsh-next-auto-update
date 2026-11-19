@@ -111,6 +111,12 @@ try {
   }
 
   $appDeadline = (Get-Date).AddSeconds($WaitForAppSeconds)
+  # Ask the app to quit first: Electron closes its windows and flushes the session
+  # log, which a forced termination skips.
+  foreach ($app in @(Get-AppProcesses)) {
+    try { $null = $app.CloseMainWindow() } catch { }
+  }
+  Start-Sleep -Seconds 4
   do {
     $running = @(Get-AppProcesses)
     foreach ($app in $running) { Stop-Process -Id $app.Id -Force -ErrorAction SilentlyContinue }
